@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { app } from "../firebase.js";
 
-const auth = getAuth();
+const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 const SignupPage = ({ signUpUserWithEmailAndPassword }) => {

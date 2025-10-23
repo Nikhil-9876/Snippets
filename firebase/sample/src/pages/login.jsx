@@ -3,6 +3,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { app } from "../firebase.js";
 
 const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
 const LoginPage = ({ onLogin, signInUserWithEmailAndPassword }) => {
   const [email, setEmail] = useState("");
@@ -32,7 +33,6 @@ const LoginPage = ({ onLogin, signInUserWithEmailAndPassword }) => {
     setLoading(true);
     setError("");
     setSuccessMessage("");
-    const provider = new GoogleAuthProvider();
 
     try {
       const result = await signInWithPopup(auth, provider);
