@@ -3,19 +3,18 @@ import SignupPage from "./pages/signup.jsx";
 import LoginPage from "./pages/login.jsx";
 import { useFirebase } from "./context/firebase.jsx";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { app } from "./firebase.js";
+import { app, db } from "./firebase.js";
 import {
   getFirestore,
   collection,
   addDoc,
   doc,
-  getDoc,
   query,
   where,
   getDocs,
   updateDoc,
 } from "firebase/firestore";
-import { get } from "firebase/database";
+import { get, set, ref, onValue } from "firebase/database";
 
 const firestore = getFirestore(app);
 const auth = getAuth(app);
@@ -27,19 +26,23 @@ const App = () => {
   const toggleForm = () => setShowSignup(!showSignup);
   const [user, setUser] = useState(null);
 
-  // Add state for the input fields
-  const [name, setName] = useState("");
+  // Input states
+  const [name, setName] = useState("Nikhil Solanki");
   const [deviceName, setDeviceName] = useState("");
   const [price, setPrice] = useState("");
 
+  // Realtime database state for username streaming
+  const [realtimeName, setRealtimeName] = useState("");
+
+  // Firestore writing
   const writeUserDataToFirestore = async (user) => {
     try {
       const docRef = await addDoc(collection(firestore, "users"), {
         uid: user.uid,
         email: user.email,
-        name, // new input value
-        deviceName, // new input value
-        price: Number(price), // convert price to number if necessary
+        name,
+        deviceName,
+        price: Number(price),
       });
       console.log("User data written with ID: ", docRef.id);
     } catch (e) {
@@ -47,6 +50,7 @@ const App = () => {
     }
   };
 
+  // Firestore subcollection writing
   const makeSubCollection = async (user) => {
     try {
       const docRef = await addDoc(
@@ -62,6 +66,7 @@ const App = () => {
     }
   };
 
+  // Firestore fetch docs by uid
   const fetchUserDocsByUid = async (uid) => {
     const q = query(collection(firestore, "users"), where("uid", "==", uid));
     const snap = await getDocs(q);
@@ -69,8 +74,8 @@ const App = () => {
     return userDocs;
   };
 
+  // Firestore update price by uid and name
   const updateUserPriceByIdAndName = async (uid, name, newPrice) => {
-    // Query for uid and name
     const q = query(
       collection(firestore, "users"),
       where("uid", "==", uid),
@@ -84,6 +89,26 @@ const App = () => {
     }
   };
 
+  // Realtime database write user data
+  const writeUserData = (userId, name, email) => {
+    set(ref(db, "users/" + userId), {
+      username: name,
+      email: email,
+    });
+  };
+
+  // Realtime database read + listen for username changes
+  useEffect(() => {
+    if (user) {
+      const nameRef = ref(db, "users/" + user.uid + "/username");
+      const unsubscribe = onValue(nameRef, (snapshot) => {
+        setRealtimeName(snapshot.val() || "");
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  // Firebase auth listener
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -107,8 +132,8 @@ const App = () => {
             <button
               onClick={toggleForm}
               className="w-full mb-6 py-2 font-semibold rounded-md transition-colors duration-300
-                   bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-4
-                   focus:ring-purple-300"
+                bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-4
+                focus:ring-purple-300"
             >
               {showSignup ? "Switch to Login" : "Switch to Signup"}
             </button>
@@ -116,15 +141,11 @@ const App = () => {
             <div className="transition-all duration-500 ease-in-out">
               {showSignup ? (
                 <SignupPage
-                  signUpUserWithEmailAndPassword={
-                    signUpUserWithEmailAndPassword
-                  }
+                  signUpUserWithEmailAndPassword={signUpUserWithEmailAndPassword}
                 />
               ) : (
                 <LoginPage
-                  signInUserWithEmailAndPassword={
-                    signInUserWithEmailAndPassword
-                  }
+                  signInUserWithEmailAndPassword={signInUserWithEmailAndPassword}
                 />
               )}
             </div>
@@ -142,16 +163,22 @@ const App = () => {
             Welcome to the App!
           </h1>
           <p className="text-lg text-gray-600 mb-4">You are logged in.</p>
+
           <button
             onClick={() => auth.signOut()}
             className="w-full py-2 font-semibold rounded-md transition-colors duration-300
-                   bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-4
-                   focus:ring-red-300"
+              bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-4
+              focus:ring-red-300"
           >
             Logout
           </button>
 
-          {/* Input fields for name, device name, price */}
+          {/* Show realtime username from Realtime Database */}
+          <p className="mt-2 text-gray-700 font-semibold">
+            Realtime username from DB: {realtimeName}
+          </p>
+
+          {/* Input fields */}
           <div className="mt-4 space-y-4 text-left">
             <div>
               <label className="block font-semibold mb-1" htmlFor="name">
@@ -194,39 +221,54 @@ const App = () => {
             </div>
           </div>
 
+          {/* Buttons */}
           <button
             onClick={() => writeUserDataToFirestore(user)}
             className="w-full py-2 my-4 font-semibold rounded-md transition-colors duration-300
-                   bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-4
-                   focus:ring-green-300"
+              bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-4
+              focus:ring-green-300"
           >
-            Write data
+            Write data to Firestore
           </button>
+
           <button
             onClick={() => makeSubCollection(user)}
             className="w-full py-2 font-semibold rounded-md transition-colors duration-300
-                   bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-4
-                   focus:ring-blue-300"
+              bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-4
+              focus:ring-blue-300"
           >
-            Add to Subcollection
+            Add to Firestore Subcollection
           </button>
+
           <button
             onClick={() =>
               fetchUserDocsByUid(user.uid).then((data) => console.log(data))
             }
             className="w-full py-2 mt-4 font-semibold rounded-md transition-colors duration-300
-                   bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-4
-                   focus:ring-indigo-300"
+              bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-4
+              focus:ring-indigo-300"
           >
-            Get Document
+            Get Firestore Documents
           </button>
+
           <button
-            onClick={() => updateUserPriceByIdAndName(user.uid, "Nikhil", 200000)}
+            onClick={() =>
+              updateUserPriceByIdAndName(user.uid, "Nikhil", 200000)
+            }
             className="w-full py-2 mt-4 font-semibold rounded-md transition-colors duration-300
-                   bg-yellow-600 text-white hover:bg-yellow-700 focus:outline-none focus:ring-4
-                   focus:ring-yellow-300"
+              bg-yellow-600 text-white hover:bg-yellow-700 focus:outline-none focus:ring-4
+              focus:ring-yellow-300"
           >
-            Update Price
+            Update Price in Firestore
+          </button>
+
+          <button
+            onClick={() => writeUserData(user.uid, name, user.email)}
+            className="w-full py-2 mt-4 font-semibold rounded-md transition-colors duration-300
+              bg-pink-600 text-white hover:bg-pink-700 focus:outline-none focus:ring-4
+              focus:ring-pink-300"
+          >
+            Write User Data to Realtime Database
           </button>
         </div>
       </div>
