@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Button, Form, Toast, ToastContainer, Container, Row, Col, Card } from "react-bootstrap";
+import { Button, Form, Container, Row, Col, Card } from "react-bootstrap";
 import { useFirebase } from "../context/Firebase";
+import { toast } from "react-toastify";
 
 const Listing = () => {
   const firebase = useFirebase();
@@ -8,54 +9,41 @@ const Listing = () => {
   const [isbnNumber, setIsbnNumber] = useState("");
   const [price, setPrice] = useState("");
   const [coverPic, setCoverPic] = useState(null);
-  const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showErrorToast, setShowErrorToast] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccessMessage("");
 
     if (!name.trim()) {
-      setError("Name is required");
-      setShowErrorToast(true);
+      toast.error("Name is required");
       return;
     }
     if (!isbnNumber.trim()) {
-      setError("ISBN number is required");
-      setShowErrorToast(true);
+      toast.error("ISBN number is required");
       return;
     }
     if (!price) {
-      setError("Price is required");
-      setShowErrorToast(true);
+      toast.error("Price is required");
       return;
     }
     if (!coverPic) {
-      setError("Cover picture file is required");
-      setShowErrorToast(true);
+      toast.error("Cover picture file is required");
       return;
     }
 
     setLoading(true);
     try {
-      
       // Save listing data with uploaded image URL
       await firebase.handleCreateNewListing(name, isbnNumber, price, coverPic);
 
       // Success feedback and reset form
-      setSuccessMessage("Listing created successfully!");
-      setShowSuccessToast(true);
+      toast.success("Listing created successfully!");
       setName("");
       setIsbnNumber("");
       setPrice("");
       setCoverPic(null);
     } catch (err) {
-      setError(err.message || "Failed to create listing");
-      setShowErrorToast(true);
+      toast.error(err.message || "Failed to create listing");
     } finally {
       setLoading(false);
     }
@@ -126,48 +114,6 @@ const Listing = () => {
           </Card>
         </Col>
       </Row>
-
-      <ToastContainer position="top-center" className="p-3">
-        <Toast
-          onClose={() => setShowSuccessToast(false)}
-          show={showSuccessToast}
-          delay={3500}
-          autohide
-          bg="success"
-          className="text-white shadow"
-        >
-          <Toast.Header closeButton={false} className="bg-success text-white border-0">
-            <strong className="me-auto">Success</strong>
-            <small>Just now</small>
-          </Toast.Header>
-          <Toast.Body>
-            <div className="d-flex align-items-center">
-              <i className="bi bi-check-circle-fill me-2"></i>
-              {successMessage}
-            </div>
-          </Toast.Body>
-        </Toast>
-
-        <Toast
-          onClose={() => setShowErrorToast(false)}
-          show={showErrorToast}
-          delay={6000}
-          autohide
-          bg="danger"
-          className="text-white shadow"
-        >
-          <Toast.Header closeButton={false} className="bg-danger text-white border-0">
-            <strong className="me-auto">Error</strong>
-            <small>Just now</small>
-          </Toast.Header>
-          <Toast.Body>
-            <div className="d-flex align-items-center">
-              <i className="bi bi-exclamation-circle-fill me-2"></i>
-              {error}
-            </div>
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
     </Container>
   );
 };

@@ -3,10 +3,12 @@ import Card from "react-bootstrap/Card";
 import Button from "react-bootstrap/Button";
 import Badge from "react-bootstrap/Badge";
 import { useFirebase } from "../context/Firebase";
+import { useNavigate } from "react-router-dom";
 
 const BookCard = (props) => {
   const firebase = useFirebase();
   const [url, setURL] = useState(null);
+  const navigate = useNavigate(); 
 
   useEffect(() => {
     const fetchURL = async () => {
@@ -23,13 +25,10 @@ const BookCard = (props) => {
 
   return (
     <div className="col-md-4 mb-4 d-flex justify-content-center">
-      <Card
-        className="h-100 shadow-sm"
-        style={{ maxWidth: "240px", width: "100%" }}
-      >
+      <Card className="h-100 shadow-sm" style={{ maxWidth: "240px", width: "100%" }}>
         <Card.Img
           variant="top"
-          src={url || ""}
+          src={url}
           alt={props.book.name}
           style={{ height: "180px", objectFit: "contain" }}
         />
@@ -44,7 +43,11 @@ const BookCard = (props) => {
             </Badge>
             <Badge bg="success">₹{props.book.price}</Badge>
           </Card.Text>
-          <Button variant="primary" className="mt-auto">
+          <Button
+            onClick={() => navigate(props.link)} // use navigate correctly
+            variant="primary"
+            className="mt-auto"
+          >
             View Details
           </Button>
         </Card.Body>

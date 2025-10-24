@@ -1,41 +1,38 @@
-import React, { useEffect, useState } from "react";
-import { Button, Form, Toast, ToastContainer, Container, Row, Col, Card } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Button, Form, Container, Row, Col } from "react-bootstrap";
 import { useFirebase } from "../../context/Firebase";
-import { getAuth} from "firebase/auth";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const Login = () => {
   const firebase = useFirebase();
-  const auth = getAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showErrorToast, setShowErrorToast] = useState(false);
 
+  // Trigger toast from route state if exists, then clear
   useEffect(() => {
-    if(firebase.isLoggedIn) {
-      navigate("/");
+    if (location.state?.toastMessage) {
+      if (location.state.toastVariant === "success") {
+        toast.success(location.state.toastMessage);
+      } else {
+        toast.error(location.state.toastMessage);
+      }
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [firebase, navigate]);
+  }, [location, navigate]);
 
-  const loginUser = async (email, password) => {
+  const loginUser = async () => {
     setLoading(true);
     try {
-      const userCredential = await firebase.signInUserWithEmailAndPassword(email, password);
-      const user = userCredential.user;
-      console.log("Login successful:", user);
-      setError("");
-      setSuccessMessage("Login successful! Welcome back.");
-      setShowSuccessToast(true);
+      await firebase.signInUserWithEmailAndPassword(email, password);
+      toast.success("Login successful! Welcome back.");
+      navigate("/");
     } catch (err) {
-      setError(err.message);
-      setShowErrorToast(true);
-      setSuccessMessage("");
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -43,19 +40,12 @@ const Login = () => {
 
   const signInWithGoogle = async () => {
     setLoading(true);
-    setError("");
-    setSuccessMessage("");
-
     try {
-      const result = await firebase.signinWithGoogle();
-      const user = result.user;
-      console.log("Google login successful:", user);
-      setSuccessMessage("Google login successful! Welcome back.");
-      setShowSuccessToast(true);
+      await firebase.signinWithGoogle();
+      toast.success("Google login successful! Welcome back.");
+      navigate("/");
     } catch (err) {
-      setError(err.message);
-      setShowErrorToast(true);
-      setSuccessMessage("");
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -63,127 +53,69 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError("");
-    setSuccessMessage("");
-
     if (!email) {
-      setError("Email is required");
-      setShowErrorToast(true);
+      toast.error("Email is required");
       return;
     }
     if (!password) {
-      setError("Password is required");
-      setShowErrorToast(true);
+      toast.error("Password is required");
       return;
     }
-
-    loginUser(email, password);
+    loginUser();
   };
 
   return (
-    <Container fluid className="vh-100 d-flex justify-content-center align-items-center bg-light">
-      <Row>
-        <Col>
-          <Card className="p-4 shadow-lg rounded" style={{ minWidth: "350px", maxWidth: "420px" }}>
-            <Card.Body>
-              <h2 className="text-center mb-4 text-primary">Log In</h2>
-              <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3" controlId="formBasicEmail">
-                  <Form.Label>Email address</Form.Label>
-                  <Form.Control
-                    type="email"
-                    placeholder="Enter email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-4" controlId="formBasicPassword">
-                  <Form.Label>Password</Form.Label>
-                  <Form.Control
-                    type="password"
-                    placeholder="Enter password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </Form.Group>
-
-                <Button variant="primary" type="submit" disabled={loading} className="w-100 mb-3">
-                  {loading ? "Logging in..." : "Log In"}
-                </Button>
-
-                <Button
-                  variant="danger"
-                  onClick={signInWithGoogle}
+    <Container className="vh-100 d-flex justify-content-center align-items-center bg-light px-3">
+      <Row className="w-100 justify-content-center">
+        <Col xs={12} sm={10} md={8} lg={5} xl={4}>
+          <div className="p-4 shadow rounded bg-white">
+            <h2 className="text-center mb-4 text-primary">Log In</h2>
+            <Form onSubmit={handleSubmit}>
+              <Form.Group className="mb-3" controlId="email">
+                <Form.Label>Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  placeholder="Enter email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
-                  className="w-100"
-                >
-                  {loading ? "Processing..." : "Log In with Google"}
-                </Button>
-              </Form>
-
-              {/* Link to signup */}
-              <div className="text-center mt-4">
-                <p>
-                  Don't have an account?{" "}
-                  <Link to="/signup" className="text-primary text-decoration-none">
-                    Sign up here
-                  </Link>
-                </p>
-              </div>
-            </Card.Body>
-          </Card>
+                  autoComplete="username"
+                />
+              </Form.Group>
+              <Form.Group className="mb-4" controlId="password">
+                <Form.Label>Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+              </Form.Group>
+              <Button type="submit" className="w-100 mb-3" disabled={loading}>
+                {loading ? "Logging in..." : "Log In"}
+              </Button>
+              <Button
+                variant="danger"
+                className="w-100"
+                disabled={loading}
+                onClick={signInWithGoogle}
+              >
+                {loading ? "Processing..." : "Log In with Google"}
+              </Button>
+            </Form>
+            <div className="mt-4 text-center">
+              <p>
+                Don't have an account?{" "}
+                <Link to="/signup" className="text-primary">
+                  Sign up here
+                </Link>
+              </p>
+            </div>
+          </div>
         </Col>
       </Row>
-
-      {/* Toast container */}
-      <ToastContainer position="top-center" className="p-3">
-        {/* Success Toast */}
-        <Toast
-          onClose={() => setShowSuccessToast(false)}
-          show={showSuccessToast}
-          delay={3500}
-          autohide
-          bg="success"
-          className="text-white shadow"
-        >
-          <Toast.Header closeButton={false} className="bg-success text-white border-0">
-            <strong className="me-auto">Success</strong>
-            <small>Just now</small>
-          </Toast.Header>
-          <Toast.Body>
-            <div className="d-flex align-items-center">
-              <i className="bi bi-check-circle-fill me-2"></i>
-              {successMessage}
-            </div>
-          </Toast.Body>
-        </Toast>
-
-        {/* Error Toast */}
-        <Toast
-          onClose={() => setShowErrorToast(false)}
-          show={showErrorToast}
-          delay={6000}
-          autohide
-          bg="danger"
-          className="text-white shadow"
-        >
-          <Toast.Header closeButton={false} className="bg-danger text-white border-0">
-            <strong className="me-auto">Error</strong>
-            <small>Just now</small>
-          </Toast.Header>
-          <Toast.Body>
-            <div className="d-flex align-items-center">
-              <i className="bi bi-exclamation-circle-fill me-2"></i>
-              {error}
-            </div>
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
     </Container>
   );
 };

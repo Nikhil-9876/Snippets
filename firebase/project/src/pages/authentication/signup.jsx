@@ -1,33 +1,27 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Form,
-  Toast,
-  ToastContainer,
   Container,
   Row,
   Col,
   Card,
 } from "react-bootstrap";
 import { useFirebase } from "../../context/Firebase";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
+
+
 
 const Signup = () => {
   const firebase = useFirebase();
-  const auth = getAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [showErrorToast, setShowErrorToast] = useState(false);
 
   useEffect(() => {
-    console.log(firebase.isLoggedIn);
     if (firebase.isLoggedIn) {
       navigate("/");
     }
@@ -36,18 +30,15 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-    setSuccess(false);
 
     try {
       await firebase.signUpUserWithEmailAndPassword(email, password);
-      setSuccess(true);
-      setShowToast(true);
       setEmail("");
       setPassword("");
+      toast.success("Account created successfully! Please login to continue.");
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      setError(err.message);
-      setShowErrorToast(true);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -55,18 +46,13 @@ const Signup = () => {
 
   const signUpWithGoogle = async () => {
     setLoading(true);
-    setError("");
-    setSuccess(false);
 
     try {
       await firebase.signinWithGoogle();
-      setSuccess(true);
-      setShowToast(true);
-      setEmail("");
-      setPassword("");
+      toast.success("Google signup successful! Welcome!");
+      setTimeout(() => navigate("/"), 2000);
     } catch (err) {
-      setError(err.message);
-      setShowErrorToast(true);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -84,9 +70,8 @@ const Signup = () => {
             style={{ minWidth: "350px", maxWidth: "420px" }}
           >
             <Card.Body>
-              <h2 className="text-center mb-4 text-primary">
-                Create an Account
-              </h2>
+              <h2 className="text-center mb-4 text-primary">Create an Account</h2>
+
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3" controlId="formBasicEmail">
                   <Form.Label>Email address</Form.Label>
@@ -95,8 +80,8 @@ const Signup = () => {
                     placeholder="Enter email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
                     disabled={loading}
+                    required
                   />
                 </Form.Group>
 
@@ -107,8 +92,8 @@ const Signup = () => {
                     placeholder="Enter password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required
                     disabled={loading}
+                    required
                   />
                 </Form.Group>
 
@@ -131,14 +116,10 @@ const Signup = () => {
                 </Button>
               </Form>
 
-              {/* Link to login */}
               <div className="text-center mt-4">
                 <p>
                   Already have an account?{" "}
-                  <Link
-                    to="/login"
-                    className="text-primary text-decoration-none"
-                  >
+                  <Link to="/login" className="text-primary text-decoration-none">
                     Login here
                   </Link>
                 </p>
@@ -147,57 +128,6 @@ const Signup = () => {
           </Card>
         </Col>
       </Row>
-
-      {/* Toast container */}
-      <ToastContainer position="top-center" className="p-3">
-        {/* Success Toast */}
-        <Toast
-          onClose={() => setShowToast(false)}
-          show={showToast}
-          delay={3500}
-          autohide
-          bg="success"
-          className="text-white shadow"
-        >
-          <Toast.Header
-            closeButton={false}
-            className="bg-success text-white border-0"
-          >
-            <strong className="me-auto">Success</strong>
-            <small>Just now</small>
-          </Toast.Header>
-          <Toast.Body>
-            <div className="d-flex align-items-center">
-              <i className="bi bi-check-circle-fill me-2"></i>
-              Account created successfully!
-            </div>
-          </Toast.Body>
-        </Toast>
-
-        {/* Error Toast */}
-        <Toast
-          onClose={() => setShowErrorToast(false)}
-          show={showErrorToast}
-          delay={6000}
-          autohide
-          bg="danger"
-          className="text-white shadow"
-        >
-          <Toast.Header
-            closeButton={false}
-            className="bg-danger text-white border-0"
-          >
-            <strong className="me-auto">Error</strong>
-            <small>Just now</small>
-          </Toast.Header>
-          <Toast.Body>
-            <div className="d-flex align-items-center">
-              <i className="bi bi-exclamation-circle-fill me-2"></i>
-              {error}
-            </div>
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
     </Container>
   );
 };
